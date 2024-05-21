@@ -3,13 +3,175 @@ library(dplyr)
 library(readxl)
 
 
-data <- read_excel("2024_ISP_TEMPLATE CAUSAL IMPACT_1605.xlsx", sheet = "Conti")
-data <- data %>% 
+data_prophet <- read_excel("2024_ISP_TEMPLATE CAUSAL IMPACT_1605.xlsx", sheet = "Conti")
+data_prophet <- data_prophet %>% 
   mutate(ds = Data,
-         numero_conti = `Numero di conti sottoscritti`)
+         y = `Numero di conti sottoscritti`,
+         ds = Data,
+         cap = 2200,
+         floor = 0)
 
-data("dt_prophet_holidays")
+data_prophet <- data_prophet[c(3,4,5,6)]
 
+# Prophet Declaration
 m <- prophet()
 m <- add_country_holidays(m, country_name = 'IT')
-m <- add_seasonality(m, name='daily', period)
+m <- add_seasonality(m, name='monthly', fourier.order = 5, period = 30.5, prior.scale = 0.5)
+
+# ISYSMART (DONE) - 01/07/203 - 30/09/2023
+subdata_isysmart <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-07-02")
+m <- prophet(subdata_isysmart, 
+             growth = 'linear', 
+             daily.seasonality = 6,
+             weekly.seasonality = 10,
+             changepoint.prior.scale = 0.28, 
+             holidays.prior.scale = 0.5,
+             seasonality.prior.scale = 0.1,
+             interval.width = 0.95,
+             changepoint.range = 1,
+             n.changepoints = 10,
+             seasonality.mode = 'additive')
+future_isysmart <- make_future_dataframe(m, periods = 70)
+forecast_isysmart <- predict(m, future_isysmart)
+prophet_plot_components(m, forecast_isysmart)
+
+# plotting data
+isysmart_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-09-10")
+plot(isysmart_true$ds, isysmart_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti', main = 'IsySmart')
+
+lines(isysmart_true$ds, isysmart_true$y, type = 'l', col = 'red')
+lines(isysmart_true$ds, forecast_isysmart$yhat, type = 'l', col = 'green')
+
+legend("topright", legend = c("True", "Prediction"), 
+       col = c("red", "green"), lty = 1)
+abline(v = isysmart_true$ds[18], col = "blue", lwd = 2, lty = 2)
+abline(v = isysmart_true$ds[87], col = "blue", lwd = 2, lty = 2)
+
+# ISYGIFT (DONE) - 09/09/2023 - 15/10/2023
+subdata_isygift <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-09-10")
+m <- prophet(subdata_isygift, 
+             growth = 'linear', 
+             daily.seasonality = TRUE,
+             weekly.seasonality = 15,
+             yearly.seasonality = FALSE,
+             changepoint.prior.scale = 0.5, 
+             holidays.prior.scale = 0.1,
+             seasonality.prior.scale = 0.9,
+             interval.width = 0.95,
+             changepoint.range = 1,
+             n.changepoints = 10,
+             seasonality.mode = 'additive')
+future_isygift <- make_future_dataframe(m, periods = 36)
+forecast_isygift <- predict(m, future_isygift)
+prophet_plot_components(m, forecast_isygift)
+
+# plotting data
+isygift_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-10-16")
+plot(isygift_true$ds, isygift_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti', main = 'IsyGift')
+
+lines(isygift_true$ds, isygift_true$y, type = 'l', col = 'red')
+lines(isygift_true$ds, forecast_isygift$yhat, type = 'l', col = 'green')
+
+legend("topright", legend = c("True", "Prediction"), 
+       col = c("red", "green"), lty = 1)
+abline(v = isygift_true$ds[87], col = "blue", lwd = 2, lty = 2)
+abline(v = isygift_true$ds[123], col = "blue", lwd = 2, lty = 2)
+
+# ISYCASHBACK (DONE) - 15/11/2023 - 07/01/2024
+subdata_isycashback <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-11-17")
+m <- prophet(subdata_isycashback, 
+             growth = 'linear', 
+             daily.seasonality = TRUE,
+             weekly.seasonality = 15,
+             yearly.seasonality = FALSE,
+             changepoint.prior.scale = 0.65, 
+             holidays.prior.scale = 0.1,
+             seasonality.prior.scale = 0.9,
+             interval.width = 0.95,
+             changepoint.range = 0.9,
+             n.changepoints = 20,
+             seasonality.mode = 'additive')
+future_isycashback <- make_future_dataframe(m, periods = 52)
+forecast_isycashback <- predict(m, future_isycashback)
+prophet_plot_components(m, forecast_isycashback)
+
+# plotting data
+isycashback_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2024-01-08")
+plot(isycashback_true$ds, isycashback_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti', main = 'IsyCashBack')
+
+lines(isycashback_true$ds, isycashback_true$y, type = 'l', col = 'red')
+lines(isycashback_true$ds, forecast_isycashback$yhat, type = 'l', col = 'green')
+
+legend("topright", legend = c("True", "Prediction"), 
+       col = c("red", "green"), lty = 1)
+abline(v = isycashback_true$ds[155], col = "blue", lwd = 2, lty = 2)
+abline(v = isycashback_true$ds[207], col = "blue", lwd = 2, lty = 2)
+
+# MEMBER GET MEMBER (DONE) - 21/12/2023 - 13/03/2024
+pre.period <- as.Date(c("2023-06-15", "2023-12-21"))
+post.period <- as.Date(c("2023-12-22", "2024-03-13"))
+subdata_mgm <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2023-12-22")
+m <- prophet(subdata_mgm, 
+             growth = 'linear', 
+             daily.seasonality = TRUE,
+             weekly.seasonality = 15,
+             yearly.seasonality = FALSE,
+             changepoint.prior.scale = 0.75, 
+             holidays.prior.scale = 0.1,
+             seasonality.prior.scale = 0.9,
+             interval.width = 0.95,
+             changepoint.range = 0.9,
+             n.changepoints = 20,
+             seasonality.mode = 'additive')
+future_mgm <- make_future_dataframe(m, periods = 83)
+forecast_mgm <- predict(m, future_mgm)
+prophet_plot_components(m, forecast_mgm)
+
+# plotting data
+isymgm_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2024-03-14")
+plot(isymgm_true$ds, isymgm_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti', main = 'IsyMGM')
+
+lines(isymgm_true$ds, isymgm_true$y, type = 'l', col = 'red')
+lines(isymgm_true$ds, forecast_mgm$yhat, type = 'l', col = 'green')
+
+legend("topright", legend = c("True", "Prediction"), 
+       col = c("red", "green"), lty = 1)
+abline(v = isymgm_true$ds[190], col = "blue", lwd = 2, lty = 2)
+abline(v = isymgm_true$ds[272], col = "blue", lwd = 2, lty = 2)
+
+# ISYGIFT2 (TODO) - 29/04/2024 - 17/06/2024
+subdata_isygift2 <- forecast_isygift[c('ds', 'yhat')]
+colnames(subdata_isygift2)[2] <- 'y'
+subdata_isygift2 <- subdata_isygift2 %>%
+  mutate(cap = rep(2200, nrow(forecast_isygift)),
+         floor = rep(0, nrow(forecast_isygift)))
+temp <- subset(data_prophet, data_prophet$ds > "2023-10-16" & data_prophet$ds <= "2024-04-30")
+final <- rbind(subdata_isygift2, temp)
+m <- prophet(final, 
+             growth = 'linear', 
+             daily.seasonality = TRUE,
+             weekly.seasonality = 15,
+             yearly.seasonality = FALSE,
+             changepoint.prior.scale = 0.3, 
+             holidays.prior.scale = 0.1,
+             seasonality.prior.scale = 0.9,
+             interval.width = 0.95,
+             changepoint.range = 0.6,
+             n.changepoints = 10,
+             seasonality.mode = 'additive')
+future_isygift2 <- make_future_dataframe(m, periods = 16)
+forecast_isygift2 <- predict(m, future_isygift2)
+prophet_plot_components(m, forecast_isygift2)
+
+# plotting data
+isygift2_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2024-07-16")
+plot(isygift2_true$ds, isygift2_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti')
+abline(v=as.Date("2024-04-30"), col='blue')
+
+lines(isygift2_true$ds, isygift2_true$y, type = 'l', col = 'red')
+lines(isygift2_true$ds, forecast_isygift2$yhat, type = 'l', col = 'green')
+
+legend("topright", legend = c("True", "Prediction"), 
+       col = c("red", "green"), lty = 1)
+abline(v = final$ds[321], col = "blue", lwd = 2, lty = 2)
+abline(v = final$ds[336], col = "blue", lwd = 2, lty = 2)
