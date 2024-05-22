@@ -149,23 +149,24 @@ temp <- subset(data_prophet, data_prophet$ds > "2023-10-16" & data_prophet$ds <=
 final <- rbind(subdata_isygift2, temp)
 m <- prophet(final, 
              growth = 'linear', 
-             daily.seasonality = TRUE,
+             daily.seasonality = 10,
              weekly.seasonality = 15,
              yearly.seasonality = FALSE,
-             changepoint.prior.scale = 0.3, 
+             changepoint.prior.scale = 0.7, 
              holidays.prior.scale = 0.1,
-             seasonality.prior.scale = 0.9,
+             seasonality.prior.scale = 1,
              interval.width = 0.95,
-             changepoint.range = 0.6,
-             n.changepoints = 10,
+             changepoint.range = 0.8,
+             n.changepoints = 110,
              seasonality.mode = 'additive')
 future_isygift2 <- make_future_dataframe(m, periods = 16)
 forecast_isygift2 <- predict(m, future_isygift2)
 prophet_plot_components(m, forecast_isygift2)
 
 # plotting data
-isygift2_true <- subset(data_prophet, data_prophet$ds >= "2023-06-15" & data_prophet$ds <= "2024-07-16")
-plot(isygift2_true$ds, isygift2_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti')
+subset.temp <- subset(data_prophet, data_prophet$ds > "2024-04-30")
+isygift2_true <- rbind(final, subset.temp)
+plot(isygift2_true$ds, isygift2_true$y, type = 'l', xlab = 'Data', ylab = 'Numero conti aperti', main = 'IsyGift2')
 abline(v=as.Date("2024-04-30"), col='blue')
 
 lines(isygift2_true$ds, isygift2_true$y, type = 'l', col = 'red')
@@ -173,5 +174,5 @@ lines(isygift2_true$ds, forecast_isygift2$yhat, type = 'l', col = 'green')
 
 legend("topright", legend = c("True", "Prediction"), 
        col = c("red", "green"), lty = 1)
-abline(v = final$ds[321], col = "blue", lwd = 2, lty = 2)
-abline(v = final$ds[336], col = "blue", lwd = 2, lty = 2)
+abline(v = isygift2_true$ds[321], col = "blue", lwd = 2, lty = 2)
+abline(v = isygift2_true$ds[336], col = "blue", lwd = 2, lty = 2)
